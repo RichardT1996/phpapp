@@ -3,6 +3,7 @@
 <html>
 <head>
 	<?php include("includes/head-tag-contents.php");?>
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
