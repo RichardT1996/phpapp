@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = 'richardthomas1/phpapp'
+    IMAGE_NAME = 'richardthomas1/phpapp-web'
     DOCKERHUB = credentials('DockerHub')
   }
 
