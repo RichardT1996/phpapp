@@ -16,10 +16,10 @@
       steps {
        
       sh '''
-                docker stop myapp6 || true
-		        docker rm myapp6 || true
-		        docker rmi richardthomas1/myapp6 || true
-		        docker build -t richardthomas1/myapp6  . 
+                docker stop phpapp || true
+		        docker rm mphpapp || true
+		        docker rmi richardthomas1/phpapp || true
+		        docker build -t richardthomas1/phpapp  . 
 				docker compose up -d
         
         '''
