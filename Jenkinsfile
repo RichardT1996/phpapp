@@ -17,7 +17,7 @@
        
       sh '''
                 docker stop phpapp || true
-		        docker rm mphpapp || true
+		        docker rm phpapp || true
 		        docker rmi richardthomas1/phpapp || true
 		        docker build -t richardthomas1/phpapp  . 
 				docker compose up -d
