@@ -38,7 +38,7 @@ pipeline {
       # Run curl from a *second* container that shares the same network namespace
       set +e
       docker run --rm \
-        --network container:myapp4-smoke \
+        --network container:phpapp-smoke \
         curlimages/curl:8.9.0 \
         -f http://localhost/ > /dev/null 2>&1
       STATUS=$?
