@@ -10,15 +10,18 @@
 <?php include("includes/navigation.php");?>
 
 <div class="container" id="main-content">
-	<h2>About Us</h2>
-	<p>"About Us" conten goes here.  I'll stick with teh "lorem ipsum" as well, so that the footer isn't immediately following this text.</p>
+<h2>About Us</h2>
+<p>Welcome to our website! We are dedicated to providing helpful information and quality content for our visitors.</p>
 
-	<p>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-	</p>
-	<p>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-	</p>
+<h2>Our Mission</h2>
+<p>Our mission is to offer clear, accessible resources that educate and inspire people from all backgrounds.</p>
+
+<h2>Our Story</h2>
+<p>Founded with a passion for learning and creativity, we started this project to share knowledge and build a community of curious minds.</p>
+
+<h2>Contact</h2>
+<p>If you have any questions or feedback, feel free to reach out—we’d love to hear from you!</p>
+
 </div>
 
 <?php include("includes/footer.php");?>
