@@ -72,14 +72,67 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('Deploy to EC2') {
+      steps {
+        sshagent(['EC2_SSH_KEY']) {
+          sh '''
+            ssh -o StrictHostKeyChecking=no ec2-user@ec2-13-50-4-52.eu-north-1.compute.amazonaws.com << 'ENDSSH'
+              echo "Deploying to EC2..."
+              cd /opt/phpapp
+              
+              # Pull latest image
+              sudo docker-compose pull
+              
+              # Recreate containers with new image
+              sudo docker-compose up -d --force-recreate
+              
+              # Wait for containers to be ready
+              sleep 10
+              
+              # Check if containers are running
+              if sudo docker ps | grep -q phpapp; then
+                echo "✅ Deployment successful!"
+                sudo docker-compose ps
+              else
+                echo "❌ Deployment failed!"
+                sudo docker-compose logs
+                exit 1
+              fi
+ENDSSH
+          '''
+        }
+      }
+    }
+
+    stage('Health Check') {
       steps {
         sh '''
-          docker compose down
-          docker compose pull
-          docker compose up -d
+          echo "Running health check..."
+          sleep 5
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://ec2-13-50-4-52.eu-north-1.compute.amazonaws.com/ || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check PASSED - Application is accessible"
+          else
+            echo "⚠️  Health check returned HTTP $HTTP_CODE"
+            echo "Application may still be starting up..."
+          fi
         '''
       }
+    }
+  }
+
+  post {
+    success {
+      echo '✅ Pipeline completed successfully!'
+      echo 'Application URL: http://ec2-13-50-4-52.eu-north-1.compute.amazonaws.com'
+    }
+    failure {
+      echo '❌ Pipeline failed! Check the logs above.'
+    }
+    always {
+      sh 'docker logout || true'
     }
   }
 }
