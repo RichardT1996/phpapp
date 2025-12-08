@@ -4,15 +4,23 @@ pipeline {
   environment {
     IMAGE_NAME = 'richardthomas1/phpapp-image'
     DOCKERHUB = credentials('DockerHub')
+    APP_DIR = '/opt/phpapp'
   }
 
   stages {
- stage('Docker Login') {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Docker Login') {
       steps {
         sh 'echo "$DOCKERHUB_PSW" | docker login -u "$DOCKERHUB_USR" --password-stdin'
       }
     }
-        stage('Build image') {
+    
+    stage('Build Image') {
       steps {
         sh '''
           docker build \
@@ -23,100 +31,62 @@ pipeline {
       }
     }
 
-  stage('Smoke test') {
-  steps {
-    sh '''
-      # Clean up old container if it exists
-      docker rm -f phpapp-smoke || true
-
-      # Run container for smoke test (no ports exposed)
-      docker run -d --name phpapp-smoke ${IMAGE_NAME}:${BUILD_NUMBER}
-
-      # Give the app a moment to start
-      sleep 15
-
-      # Run curl from a *second* container that shares the same network namespace
-      set +e
-      docker run --rm \
-        --network container:phpapp-smoke \
-        curlimages/curl:8.9.0 \
-        -f http://localhost/ > /dev/null 2>&1
-      STATUS=$?
-      set -e
-
-      if [ "$STATUS" -ne 0 ]; then
-        echo "Smoke test FAILED, container logs:"
-        docker logs phpapp-smoke || true
-        docker rm -f phpapp-smoke || true
-        exit 1
-      fi
-
-      echo "Smoke test PASSED"
-      docker rm -f phpapp-smoke || true
-    '''
-  }
-}
-
-
-
-
-     
-   
-
-    stage('Push image') {
+    stage('Smoke Test') {
       steps {
         sh '''
+          docker rm -f phpapp-smoke || true
+          docker run -d --name phpapp-smoke ${IMAGE_NAME}:${BUILD_NUMBER}
+          sleep 15
+
+          set +e
+          docker run --rm \
+            --network container:phpapp-smoke \
+            curlimages/curl:8.9.0 \
+            -f http://localhost/ > /dev/null 2>&1
+          STATUS=$?
+          set -e
+
+          docker rm -f phpapp-smoke || true
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "❌ Smoke test FAILED"
+            exit 1
+          fi
           
-          docker push ${IMAGE_NAME}:latest
+          echo "✅ Smoke test PASSED"
         '''
       }
     }
 
-    stage('Deploy to EC2') {
+    stage('Push Image') {
       steps {
-        sshagent(['EC2_SSH_KEY']) {
-          sh '''
-            ssh -o StrictHostKeyChecking=no ec2-user@ec2-13-50-4-52.eu-north-1.compute.amazonaws.com << 'ENDSSH'
-              echo "Deploying to EC2..."
-              cd /opt/phpapp
-              
-              # Pull latest image
-              sudo docker-compose pull
-              
-              # Recreate containers with new image
-              sudo docker-compose up -d --force-recreate
-              
-              # Wait for containers to be ready
-              sleep 10
-              
-              # Check if containers are running
-              if sudo docker ps | grep -q phpapp; then
-                echo "✅ Deployment successful!"
-                sudo docker-compose ps
-              else
-                echo "❌ Deployment failed!"
-                sudo docker-compose logs
-                exit 1
-              fi
-ENDSSH
-          '''
-        }
+        sh 'docker push ${IMAGE_NAME}:latest'
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        sh '''
+          cd ${APP_DIR}
+          docker-compose pull
+          docker-compose up -d --force-recreate
+          sleep 10
+          docker-compose ps
+        '''
       }
     }
 
     stage('Health Check') {
       steps {
         sh '''
-          echo "Running health check..."
           sleep 5
-          
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://ec2-13-50-4-52.eu-north-1.compute.amazonaws.com/ || echo "000")
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ || echo "000")
           
           if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Health check PASSED - Application is accessible"
+            echo "✅ Health check PASSED - HTTP $HTTP_CODE"
           else
-            echo "⚠️  Health check returned HTTP $HTTP_CODE"
-            echo "Application may still be starting up..."
+            echo "⚠️ Health check returned HTTP $HTTP_CODE"
+            exit 1
           fi
         '''
       }
@@ -129,7 +99,7 @@ ENDSSH
       echo 'Application URL: http://ec2-13-50-4-52.eu-north-1.compute.amazonaws.com'
     }
     failure {
-      echo '❌ Pipeline failed! Check the logs above.'
+      echo '❌ Pipeline failed!'
     }
     always {
       sh 'docker logout || true'

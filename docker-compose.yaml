@@ -2,18 +2,28 @@ version: "3.8"
 
 services:
   web:
-    build: .
-    volumes:
-      - ./site:/var/www/html
+    image: richardthomas1/phpapp-image:latest
     ports:
       - "80:80"
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=12345
+      - DB_NAME=docker_database
+    depends_on:
+      - db
+    restart: unless-stopped
 
   db:
-    image: mysql
+    image: mysql:8.0
     volumes:
-      - ./db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 12345
       MYSQL_DATABASE: docker_database
+    restart: unless-stopped
+
+volumes:
+  db_data:
