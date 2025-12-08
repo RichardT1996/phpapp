@@ -61,6 +61,7 @@ pipeline {
     stage('Push Image') {
       steps {
         sh 'docker push ${IMAGE_NAME}:latest'
+        sh 'docker push ${IMAGE_NAME}:${BUILD_NUMBER}'
       }
     }
 
@@ -68,10 +69,10 @@ pipeline {
       steps {
         sh '''
           cd ${APP_DIR}
-          docker-compose pull
-          docker-compose up -d --force-recreate
+          sudo docker-compose pull
+          sudo docker-compose up -d --force-recreate
           sleep 10
-          docker-compose ps
+          sudo docker-compose ps
         '''
       }
     }
@@ -79,13 +80,17 @@ pipeline {
     stage('Health Check') {
       steps {
         sh '''
-          sleep 5
+          sleep 10
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ || echo "000")
           
           if [ "$HTTP_CODE" = "200" ]; then
             echo "✅ Health check PASSED - HTTP $HTTP_CODE"
           else
             echo "⚠️ Health check returned HTTP $HTTP_CODE"
+            echo "Checking container status..."
+            cd ${APP_DIR}
+            sudo docker-compose ps
+            sudo docker-compose logs --tail=50 web
             exit 1
           fi
         '''
@@ -100,6 +105,11 @@ pipeline {
     }
     failure {
       echo '❌ Pipeline failed!'
+      sh '''
+        echo "Checking logs..."
+        cd ${APP_DIR}
+        sudo docker-compose logs --tail=100 || true
+      '''
     }
     always {
       sh 'docker logout || true'
