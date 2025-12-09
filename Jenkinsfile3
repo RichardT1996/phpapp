@@ -73,6 +73,7 @@ pipeline {
       steps {
         sshagent(['EC2_SSH_KEY']) {
           sh """
+            scp -o StrictHostKeyChecking=no docker-compose.yaml init.sql ${EC2_USER}@${EC2_HOST}:${APP_DIR}/
             ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
               cd ${APP_DIR}
               docker-compose pull
