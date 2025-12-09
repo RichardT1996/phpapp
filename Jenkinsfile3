@@ -72,7 +72,7 @@ pipeline {
     stage('Deploy to AWS EC2') {
       steps {
         sshagent(['EC2_SSH_KEY']) {
-          sh '''
+          sh """
             ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
               cd ${APP_DIR}
               docker-compose pull
@@ -80,7 +80,7 @@ pipeline {
               sleep 10
               docker-compose ps
 ENDSSH
-          '''
+          """
         }
       }
     }
