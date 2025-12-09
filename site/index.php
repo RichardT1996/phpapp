@@ -71,7 +71,7 @@
     <h2>Welcome to my website!</h2>
     <h3>My name is Richard Thomas</h3>
     <p class="welcome-text">
-        Welcome to my website. Feel free to explore and check out the database content below.
+        Feel free to explore and check out the database content below.
     </p>
 
     <h1 class="section-title">Database Records</h1>
