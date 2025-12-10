@@ -62,32 +62,17 @@ pipeline {
       }
     }
 
-    stage('Setup Ansible SSH Key') {
-      steps {
-        sshagent(['EC2_SSH_KEY']) {
-          sh '''
-            mkdir -p /var/jenkins_home/.ssh
-            cp "$SSH_AUTH_SOCK" /tmp/ssh_auth_sock
-            export SSH_AUTH_SOCK=/tmp/ssh_auth_sock
-          '''
-        }
-        
-        withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_FILE')]) {
-          sh '''
-            mkdir -p /var/jenkins_home/.ssh
-            cp "$SSH_KEY_FILE" /var/jenkins_home/.ssh/ec2_key.pem
-            chmod 600 /var/jenkins_home/.ssh/ec2_key.pem
-          '''
-        }
-      }
-    }
-
     stage('Deploy with Ansible') {
       steps {
-        dir('ansible') {
-          sh '''
-            ansible-playbook -i inventory.ini deploy.yml -v
-          '''
+        withCredentials([sshUserPrivateKey(credentialsId: 'EC2_SSH_KEY', keyFileVariable: 'SSH_KEY_FILE')]) {
+          dir('ansible') {
+            sh '''
+              mkdir -p /var/jenkins_home/.ssh
+              cp "$SSH_KEY_FILE" /var/jenkins_home/.ssh/ec2_key.pem
+              chmod 600 /var/jenkins_home/.ssh/ec2_key.pem
+              ansible-playbook -i inventory.ini deploy.yml -v
+            '''
+          }
         }
       }
     }
