@@ -1,0 +1,119 @@
+pipeline {
+  agent any
+
+  environment {
+    IMAGE_NAME = 'richardthomas1/phpapp-image'
+    DOCKERHUB = credentials('DockerHub')
+    ANSIBLE_CONFIG = "${WORKSPACE}/ansible/ansible.cfg"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Docker Login') {
+      steps {
+        sh 'echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin'
+      }
+    }
+
+    stage('Build Image') {
+      steps {
+        script {
+          def buildNumber = env.BUILD_NUMBER
+          sh """
+            docker build -t ${IMAGE_NAME}:${buildNumber} -t ${IMAGE_NAME}:latest .
+          """
+        }
+      }
+    }
+
+    stage('Smoke Test') {
+      steps {
+        script {
+          sh '''
+            docker rm -f phpapp-smoke || true
+            docker run -d --name phpapp-smoke ${IMAGE_NAME}:${BUILD_NUMBER}
+            sleep 15
+            set +e
+            docker run --rm --network container:phpapp-smoke curlimages/curl:8.9.0 -f http://localhost/
+            STATUS=$?
+            set -e
+            docker rm -f phpapp-smoke
+            if [ $STATUS -ne 0 ]; then
+              echo "❌ Smoke test FAILED"
+              exit 1
+            fi
+            echo "✅ Smoke test PASSED"
+          '''
+        }
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        sh """
+          docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+          docker push ${IMAGE_NAME}:latest
+        """
+      }
+    }
+
+    stage('Setup Ansible SSH Key') {
+      steps {
+        sshagent(['EC2_SSH_KEY']) {
+          sh '''
+            mkdir -p /var/jenkins_home/.ssh
+            ssh-add -L > /var/jenkins_home/.ssh/ec2_key.pem
+            chmod 600 /var/jenkins_home/.ssh/ec2_key.pem
+          '''
+        }
+      }
+    }
+
+    stage('Deploy with Ansible') {
+      steps {
+        dir('ansible') {
+          sh '''
+            ansible-playbook -i inventory.ini deploy.yml -v
+          '''
+        }
+      }
+    }
+
+    stage('Health Check All Instances') {
+      steps {
+        script {
+          def servers = [
+            'webserver1': 'ec2-13-53-125-96.eu-north-1.compute.amazonaws.com',
+            'webserver2': 'ec2-51-20-192-200.eu-north-1.compute.amazonaws.com',
+            'webserver3': 'ec2-56-228-80-73.eu-north-1.compute.amazonaws.com'
+          ]
+          
+          servers.each { name, host ->
+            echo "Checking ${name}..."
+            sh """
+              curl -f http://${host}/ || (echo "❌ ${name} health check failed" && exit 1)
+              echo "✅ ${name} is healthy"
+            """
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker logout'
+    }
+    success {
+      echo '✅ Pipeline succeeded! Application deployed to all instances.'
+    }
+    failure {
+      echo '❌ Pipeline failed!'
+    }
+  }
+}
