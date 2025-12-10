@@ -89,7 +89,7 @@ pipeline {
           servers.each { name, host ->
             echo "Checking ${name}..."
             sh """
-              curl -f http://${host}/ || (echo "❌ ${name} health check failed" && exit 1)
+              curl -f -s -o /dev/null http://${host}/ || (echo "❌ ${name} health check failed" && exit 1)
               echo "✅ ${name} is healthy"
             """
           }
