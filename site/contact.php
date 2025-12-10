@@ -71,6 +71,25 @@
         .contact-form h2 {
             margin-top: 0;
         }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .alert.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
     </style>
 </head>
 
@@ -80,7 +99,32 @@
 <?php include("includes/navigation.php"); ?>
 
 <div class="container" id="main-content">
-    <form action="#" method="post" class="contact-form">
+    <?php if (isset($_GET['success'])): ?>
+        <div class="alert success">✅ Thank you! Your message has been sent successfully.</div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['error'])): ?>
+        <div class="alert error">
+            ❌ 
+            <?php
+            switch($_GET['error']) {
+                case 'missing_fields':
+                    echo 'Please fill in all fields.';
+                    break;
+                case 'invalid_email':
+                    echo 'Please enter a valid email address.';
+                    break;
+                case 'database':
+                    echo 'An error occurred. Please try again later.';
+                    break;
+                default:
+                    echo 'An error occurred. Please try again.';
+            }
+            ?>
+        </div>
+    <?php endif; ?>
+
+    <form action="submit_contact.php" method="post" class="contact-form">
         <h2>Contact Us</h2>
 
         <label for="name">Name</label>

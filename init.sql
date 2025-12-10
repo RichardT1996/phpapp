@@ -11,3 +11,12 @@ INSERT INTO test (name, email) VALUES
     ('Jane Smith', 'jane@example.com'),
     ('Bob Johnson', 'bob@example.com')
 ON DUPLICATE KEY UPDATE name=name;
+
+-- Create contacts table for contact form submissions
+CREATE TABLE IF NOT EXISTS contacts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
